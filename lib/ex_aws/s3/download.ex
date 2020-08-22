@@ -23,11 +23,14 @@ defmodule ExAws.S3.Download do
     {start_byte, body}
   end
 
-  def build_chunk_stream(op, config) do
+  def get_stream_meta(%{opts: [size: size, no_file_attr: true]} = op, config) do
+    {nil, size}
+  end
 
+  def get_stream_meta(op, config) do
     %{headers: headers} = ExAws.S3.head_object(op.bucket, op.path) |> ExAws.request!(config)
     attrs = get_header(headers, "x-amz-meta-s3cmd-attrs")
-    # IO.inspect(attrs)
+
     file_attrs = if attrs do
       attrs 
       |> String.split("/")
@@ -42,6 +45,12 @@ defmodule ExAws.S3.Download do
     |> Enum.find(fn {k, _} -> String.downcase(k) == "content-length" end)
     |> elem(1)
     |> String.to_integer
+
+    {file_attrs, size}
+  end
+
+  def build_chunk_stream(op, config) do
+    {file_attrs, size} = get_stream_meta(op, config)
 
     stream = chunk_stream(size, op.opts[:chunk_size] || 1024 * 1024)
 
@@ -103,14 +112,16 @@ defimpl ExAws.Operation, for: ExAws.S3.Download do
       |> Stream.run
 
       File.close(file)
-      # file_attrs |> IO.inspect
-      File.touch!(op.dest, file_attrs["mtime"] |> String.to_integer)
+      if file_attrs["mtime"] do
+        File.touch!(op.dest, file_attrs["mtime"] |> String.to_integer)
+      end
 
       {:ok, :done}
     rescue
-      _ ->
+      err ->
         File.close(file)
         File.rm(op.dest)
+        IO.inspect(err)
         {:error, "error downloading file"}
     end
   end

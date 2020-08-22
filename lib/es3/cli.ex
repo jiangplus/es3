@@ -3,6 +3,10 @@ defmodule Es3.CLI do
   Documentation for `Es3`.
   """
 
+  @help_string """
+  es3 client
+  """
+
   def ls([uri] = _params) do
     res = Es3.ls(uri)
   end
@@ -51,7 +55,7 @@ defmodule Es3.CLI do
   end
 
   def msync(params) do
-    Enum.each(fn item -> 
+    Enum.each(params, fn item -> 
       [source, dest] = String.split(item, "::")
     res = Es3.sync(source, dest)
     end)
@@ -64,22 +68,20 @@ defmodule Es3.CLI do
   end
 
   def main(args) do
-  end
-  # def main(args) do
-  #   options = [switches: [access_key: :string, secret_key: :string, ssl: :string, no_ssl: :string, acl_public: :string, acl_private: :string, host: :string, host_bucket: :string, region: :string ]]
-  #   {opts, arglist, _}= OptionParser.parse(args, options)
-  #   IO.inspect opts, label: "Options"
-  #   IO.inspect arglist, label: "Arguments"
-  #   IO.puts ""
-  #   IO.puts ""
+    options = [switches: [access_key: :string, secret_key: :string, ssl: :string, no_ssl: :string, acl_public: :string, acl_private: :string, host: :string, host_bucket: :string, region: :string ]]
+    {opts, arglist, _}= OptionParser.parse(args, options)
+    IO.inspect opts, label: "Options"
+    IO.inspect arglist, label: "Arguments"
+    IO.puts ""
+    IO.puts ""
 
-  #   case arglist do
-  #     ["get" | rest] -> get(rest)
-  #     ["put" | rest] -> put(rest)
-  #     ["ls" | rest] -> ls(rest)
-  #     ["rm" | rest] -> rm(rest)
-  #     ["sync" | rest] -> sync(rest)
-  #     _ -> IO.puts(@help_string)
-  #   end
-  # end
+    case arglist do
+      ["get" | rest] -> get(rest)
+      ["put" | rest] -> put(rest)
+      ["ls" | rest] -> ls(rest)
+      ["rm" | rest] -> rm(rest)
+      ["sync" | rest] -> sync(rest)
+      _ -> IO.puts(@help_string)
+    end
+  end
 end

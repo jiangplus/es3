@@ -80,12 +80,13 @@ defmodule Es3 do
     uri = URI.parse(uri)
     bucket = uri.host
     path = get_path(uri.path)
-    res = ExAws.S3.list_objects(bucket, prefix: path, delimiter: "/") |> ExAws.request!
-    
+    res = ExAws.S3.list_objects(bucket, prefix: path, delimiter: "/") |> ExAws.request!()
+
     Enum.each(res.body.common_prefixes, fn item -> 
       IO.puts("DIR s3://#{bucket}/#{item.prefix}") 
     end)
     Enum.each(res.body.contents, fn item -> 
+      IO.inspect(item)
       IO.puts("#{item.last_modified} #{item.size} #{item.e_tag |> unmark_etag} s3://#{bucket}/#{item.key}") 
     end)
   end
@@ -223,8 +224,9 @@ defmodule Es3 do
     resp = ExAws.S3.list_objects(bucket, prefix: path, delimiter: "") |> ExAws.stream! |> Enum.to_list
 
     resp |> IO.inspect
-    _result = Enum.map(resp, fn %{e_tag: e_tag, key: key} ->
+    _result = Enum.map(resp, fn %{e_tag: e_tag, key: key, size: size} ->
       e_tag = e_tag |> unmark_etag
+      size = String.to_integer(size)
       local_file_path = if String.ends_with?(raw_path, "/") do
         Path.join(local_dir, String.replace_prefix(key, path, ""))
       else
@@ -232,22 +234,17 @@ defmodule Es3 do
       end
       local_file_dir = Path.dirname(local_file_path)
 
-      # IO.inspect({Path.join(local_dir, String.replace_prefix(key, path, "")),
-      #   Path.join([local_dir, Path.basename(path), String.replace_prefix(key, path, "")]),
-      #   local_file_path, local_file_dir})
-
       if File.exists?(local_file_path) && file_md5(local_file_path) == e_tag do
         IO.puts "skip #{key} #{e_tag} -> #{local_file_path}"
       else
-        # File.mkdir_p!(local_file_dir)
-        res = ExAws.S3.download_file(bucket, key, local_file_path) |> ExAws.request
+        res = ExAws.S3.download_file(bucket, key, local_file_path, [size: size, no_file_attr: true]) |> ExAws.request
         case res do
           {:ok, _done}      -> 
             IO.puts "download #{key} #{e_tag} -> #{local_file_path}"
           {:error, :enoent} ->
             IO.puts "mkdir #{local_file_dir}"
             File.mkdir_p!(local_file_dir)
-            res = ExAws.S3.download_file(bucket, key, local_file_path) |> ExAws.request
+            res = ExAws.S3.download_file(bucket, key, local_file_path, [size: size, no_file_attr: true]) |> ExAws.request
             IO.puts "download #{key} #{e_tag} -> #{local_file_path}"
           {:error, reason} -> IO.puts "Error: #{reason}"
         end

@@ -48,9 +48,6 @@ defmodule ExAws do
   @impl ExAws.Behaviour
   def request(op, config_overrides \\ []) do
     config = ExAws.Config.new(op.service, config_overrides)
-    # "prob" |> IO.inspect
-    # op |> IO.inspect
-    # config |> IO.inspect
     ExAws.Operation.perform(op, config)
   end
 

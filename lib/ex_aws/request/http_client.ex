@@ -13,7 +13,7 @@ defmodule ExAws.Request.HttpClient do
   In your config you would do:
 
   ```elixir
-  config :ex_aws,
+  config :es3,
     http_client: ExAws.Request.HTTPotion
   ```
 

@@ -27,3 +27,5 @@ es3-*.tar
 
 .DS_Store
 .env
+
+testrun.ex
