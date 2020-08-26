@@ -7,16 +7,16 @@ defmodule Es3.CLI do
   es3 client
   """
 
-  def ls([uri] = _params) do
-    res = Es3.ls(uri)
+  def ls([uri] = _args, _opts) do
+    Es3.ls(uri)
   end
 
   def ls(_) do
-    res = Es3.ls()
+    Es3.ls()
   end
 
-  def get([source, dest] = _params) do
-    res = Es3.get(source, dest)
+  def get([source, dest] = _args, _opts) do
+    Es3.get(source, dest)
   end
 
   def get(_) do
@@ -26,8 +26,8 @@ defmodule Es3.CLI do
     """)
   end
 
-  def put([source, dest] = _params) do
-    res = Es3.put(source, dest)
+  def put([source, dest] = _args, _opts) do
+    Es3.put(source, dest)
   end
 
   def put(_) do
@@ -37,8 +37,8 @@ defmodule Es3.CLI do
     """)
   end
 
-  def rm([uri] = _params) do
-    res = Es3.rm(uri)
+  def rm([uri] = _args, _opts) do
+    Es3.rm(uri)
   end
 
   def rm(_) do
@@ -48,8 +48,8 @@ defmodule Es3.CLI do
     """)
   end
 
-  def sync([source, dest] = _params) do
-    res = Es3.sync(source, dest)
+  def sync([source, dest] = _args, _opts) do
+    Es3.sync(source, dest)
   end
 
   def sync(_) do
@@ -59,14 +59,14 @@ defmodule Es3.CLI do
     """)
   end
 
-  def msync(params) do
-    Enum.each(params, fn item ->
+  def msync(args, _opts) do
+    Enum.each(args, fn item ->
       [source, dest] = String.split(item, "::")
-      res = Es3.sync(source, dest)
+      Es3.sync(source, dest)
     end)
   end
 
-  def sync(_) do
+  def msync(_) do
     IO.puts("""
     sync muliiple dir
     Es3 msync <source> <dest>
@@ -89,18 +89,20 @@ defmodule Es3.CLI do
     ]
 
     {opts, arglist, _} = OptionParser.parse(args, options)
-    IO.inspect(opts, label: "Options")
-    IO.inspect(arglist, label: "Arguments")
     IO.puts("")
 
-    case arglist do
-      ["echo" | rest] -> IO.puts("hello es3")
-      ["get" | rest] -> get(rest)
-      ["put" | rest] -> put(rest)
-      ["ls" | rest] -> ls(rest)
-      ["rm" | rest] -> rm(rest)
-      ["sync" | rest] -> sync(rest)
-      _ -> IO.puts(@help_string)
+    try do
+      case arglist do
+        ["get" | args] -> get(args, opts)
+        ["put" | args] -> put(args, opts)
+        ["ls" | args] -> ls(args, opts)
+        ["rm" | args] -> rm(args, opts)
+        ["sync" | args] -> sync(args, opts)
+        _ -> IO.puts(@help_string)
+      end
+    rescue
+      e in RuntimeError ->
+        IO.puts(e.message)
     end
   end
 end

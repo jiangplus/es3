@@ -35,6 +35,7 @@ defmodule Es3 do
 
     ExAws.S3.put_bucket(bucket, "cn-northwest-1")
     |> ExAws.request(region: "cn-northwest-1")
+    # todo : remove
     |> IO.inspect()
   end
 
@@ -90,7 +91,7 @@ defmodule Es3 do
     end)
 
     Enum.each(res.body.contents, fn item ->
-      IO.inspect(item)
+      # IO.inspect(item) # todo : remove
 
       IO.puts(
         "#{item.last_modified} #{item.size} #{item.e_tag |> unmark_etag} s3://#{bucket}/#{
@@ -157,7 +158,8 @@ defmodule Es3 do
     IO.puts("acl:       #{acl}")
     IO.puts("attrs:     #{get_header(headers, "x-amz-meta-s3cmd-attrs")}")
     IO.puts("encrypt:   #{get_header(headers, "x-amz-server-side-encryption")}")
-    ts = get_header(headers, "last-modified") |> IO.inspect()
+    ts = get_header(headers, "last-modified")
+    ts |> IO.inspect()
   end
 
   def fstat(name) do
@@ -174,7 +176,7 @@ defmodule Es3 do
 
     case {source, dest} do
       {%URI{scheme: "s3"}, %URI{scheme: "s3"}} ->
-        IO.inspect("both source and dest are s3 address is not supported")
+        IO.puts("both source and dest are s3 address is not supported")
 
       {%URI{scheme: "s3"}, _} ->
         downsync(source, dest, opts)
@@ -183,11 +185,11 @@ defmodule Es3 do
         upsync(source, dest, opts)
 
       {_, _} ->
-        IO.inspect("not supported")
+        IO.puts("not supported")
     end
   end
 
-  def upsync(source, dest, opts) do
+  def upsync(source, dest, _opts) do
     bucket = dest.host
     path = dest.path |> String.replace_prefix("/", "") |> String.replace_suffix("/", "")
     local_dir = source.path
@@ -209,7 +211,7 @@ defmodule Es3 do
         Path.wildcard(Path.join(local_dir, "**/*"))
       end
 
-    items |> IO.inspect()
+    # items |> IO.inspect() # todo : remove
 
     result =
       Enum.map(items, fn item ->
@@ -222,7 +224,7 @@ defmodule Es3 do
 
             {:skip}
           else
-            resp = ExAws.S3.put_object(bucket, remote_path, File.read!(item)) |> ExAws.request!()
+            ExAws.S3.put_object(bucket, remote_path, File.read!(item)) |> ExAws.request!()
             IO.puts("upload: #{item} #{md5} -> #{remote_path} #{list[remote_path]}")
 
             # for bucket versioning
@@ -236,7 +238,7 @@ defmodule Es3 do
     result
   end
 
-  def downsync(source, dest, opts) do
+  def downsync(source, dest, _opts) do
     bucket = source.host
     raw_path = source.path
     path = source.path |> String.replace_prefix("/", "")
@@ -249,10 +251,11 @@ defmodule Es3 do
       |> ExAws.stream!()
       |> Enum.to_list()
 
+    # todo : remove
     resp |> IO.inspect()
 
     _result =
-      Enum.map(resp, fn %{e_tag: e_tag, key: key, size: size} ->
+      Enum.map(resp, fn %{e_tag: e_tag, key: key, size: size, last_modified: modified} ->
         e_tag = e_tag |> unmark_etag
         size = String.to_integer(size)
 
@@ -269,7 +272,7 @@ defmodule Es3 do
           IO.puts("skip #{key} #{e_tag} -> #{local_file_path}")
         else
           res =
-            ExAws.S3.download_file(bucket, key, local_file_path, size: size, no_file_attr: true)
+            ExAws.S3.download_file(bucket, key, local_file_path, size: size, modified: modified)
             |> ExAws.request()
 
           case res do
@@ -277,15 +280,14 @@ defmodule Es3 do
               IO.puts("download #{key} #{e_tag} -> #{local_file_path}")
 
             {:error, :enoent} ->
-              IO.puts("mkdir #{local_file_dir}")
+              # IO.puts("mkdir #{local_file_dir}")
               File.mkdir_p!(local_file_dir)
 
-              res =
-                ExAws.S3.download_file(bucket, key, local_file_path,
-                  size: size,
-                  no_file_attr: true
-                )
-                |> ExAws.request()
+              ExAws.S3.download_file(bucket, key, local_file_path,
+                size: size,
+                modified: modified
+              )
+              |> ExAws.request()
 
               IO.puts("download #{key} #{e_tag} -> #{local_file_path}")
 

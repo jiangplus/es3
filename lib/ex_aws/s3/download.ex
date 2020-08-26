@@ -23,8 +23,11 @@ defmodule ExAws.S3.Download do
     {start_byte, body}
   end
 
-  def get_stream_meta(%{opts: [size: size, no_file_attr: true]} = op, config) do
-    {nil, size}
+  def get_stream_meta(%{opts: [size: size, modified: modified]} = _op, _config) do
+    {:ok, time, 0} = DateTime.from_iso8601(modified)
+    time = time |> DateTime.to_unix() |> to_string
+    file_attrs = %{"mtime" => time}
+    {file_attrs, size}
   end
 
   def get_stream_meta(op, config) do
