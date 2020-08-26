@@ -73,9 +73,9 @@ defmodule Es3.CLI do
     IO.inspect opts, label: "Options"
     IO.inspect arglist, label: "Arguments"
     IO.puts ""
-    IO.puts ""
 
     case arglist do
+      ["echo" | rest] -> IO.puts("hello es3")
       ["get" | rest] -> get(rest)
       ["put" | rest] -> put(rest)
       ["ls" | rest] -> ls(rest)
