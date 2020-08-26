@@ -44,10 +44,10 @@ defmodule ExAws.Config do
     service_config = Application.get_env(:es3, service, []) |> Map.new()
 
     region =
-      (Map.get(overrides, :region)
-        || Map.get(service_config, :region)
-        || Map.get(common_config, :region)
-        || "us-east-1")
+      (Map.get(overrides, :region) ||
+         Map.get(service_config, :region) ||
+         Map.get(common_config, :region) ||
+         "us-east-1")
       |> retrieve_runtime_value(%{})
 
     defaults = ExAws.Config.Defaults.get(service, region)

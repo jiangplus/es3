@@ -26,7 +26,6 @@ defmodule ExAws.Request do
     do: {:error, reason}
 
   def request_and_retry(method, url, service, config, headers, req_body, {:attempt, attempt}) do
-
     full_headers = ExAws.Auth.headers(method, url, service, config, headers, req_body)
 
     with {:ok, full_headers} <- full_headers do

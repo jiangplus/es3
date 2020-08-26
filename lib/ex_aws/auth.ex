@@ -87,7 +87,8 @@ defmodule ExAws.Auth do
 
       uri = URI.parse(url)
 
-      path = url |> Url.get_path(service) |> Url.uri_encode
+      path = url |> Url.get_path(service) |> Url.uri_encode()
+
       path =
         if uri.query do
           path <> "?" <> uri.query
@@ -120,6 +121,7 @@ defmodule ExAws.Auth do
 
   defp auth_header(http_method, url, headers, body, service, datetime, config) do
     uri = URI.parse(url)
+
     query =
       if uri.query,
         do: uri.query |> URI.decode_query() |> Enum.to_list() |> canonical_query_params,
@@ -146,6 +148,7 @@ defmodule ExAws.Auth do
 
   def signature(http_method, url, query, headers, body, service, datetime, config) do
     path = url |> Url.get_path(service) |> Url.uri_encode()
+
     payload =
       case body do
         nil -> "UNSIGNED-PAYLOAD"
@@ -168,33 +171,45 @@ defmodule ExAws.Auth do
   def sign_with_signer(http_method, path, query, headers, payload, service, datetime, config) do
     {{y, m, d}, {hh, mm, ss}} = datetime
     signer_date = [y, m, d, hh, mm, ss]
-    signer_headers = headers |> Enum.map(fn {k, v} -> 
-      [k, v]
-    end)
+
+    signer_headers =
+      headers
+      |> Enum.map(fn {k, v} ->
+        [k, v]
+      end)
+
     signer_config = %{
       region: config[:region],
       scheme: config[:scheme],
-      host:   config[:host],
-      port:   config[:port],
+      host: config[:host],
+      port: config[:port]
     }
+
     data = %{
-      http_method: http_method, 
-      path: path, 
-      query: query, 
-      headers: signer_headers, 
-      payload: payload, 
-      service: service, 
+      http_method: http_method,
+      path: path,
+      query: query,
+      headers: signer_headers,
+      payload: payload,
+      service: service,
       datetime: signer_date,
-      config: signer_config,
+      config: signer_config
     }
+
     data = Jason.encode!(data)
     auth_token = config[:signer_key]
-    signer_header = [{"Content-Type", "application/json"}, {"Authorization", "Bearer #{auth_token}"}]
+
+    signer_header = [
+      {"Content-Type", "application/json"},
+      {"Authorization", "Bearer #{auth_token}"}
+    ]
+
     key = HTTPoison.post!(config[:signer_url], data, signer_header)
+
     case Jason.decode!(key.body) do
       %{"signature" => sig} -> sig
       _ -> :error
-     end 
+    end
   end
 
   def build_canonical_request(http_method, path, query, headers, payload) do

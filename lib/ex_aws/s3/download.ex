@@ -9,7 +9,7 @@ defmodule ExAws.S3.Download do
     :path,
     :dest,
     opts: [],
-    service: :s3,
+    service: :s3
   ]
 
   @type t :: %__MODULE__{}
@@ -17,7 +17,7 @@ defmodule ExAws.S3.Download do
   def get_chunk(op, %{start_byte: start_byte, end_byte: end_byte}, config) do
     %{body: body} =
       op.bucket
-      |> ExAws.S3.get_object(op.path, [range: "bytes=#{start_byte}-#{end_byte}"])
+      |> ExAws.S3.get_object(op.path, range: "bytes=#{start_byte}-#{end_byte}")
       |> ExAws.request!(config)
 
     {start_byte, body}
@@ -31,20 +31,25 @@ defmodule ExAws.S3.Download do
     %{headers: headers} = ExAws.S3.head_object(op.bucket, op.path) |> ExAws.request!(config)
     attrs = get_header(headers, "x-amz-meta-s3cmd-attrs")
 
-    file_attrs = if attrs do
-      attrs 
-      |> String.split("/")
-      |> Enum.map(fn s -> [k, v] = String.split(s, ":"); {k, v} end)
-      |> Enum.filter(fn {k, _v} -> k == "atime" || k == "mtime" || k == "ctime"  end)
-      |> Enum.into(%{})
-    else
-      nil
-    end
+    file_attrs =
+      if attrs do
+        attrs
+        |> String.split("/")
+        |> Enum.map(fn s ->
+          [k, v] = String.split(s, ":")
+          {k, v}
+        end)
+        |> Enum.filter(fn {k, _v} -> k == "atime" || k == "mtime" || k == "ctime" end)
+        |> Enum.into(%{})
+      else
+        nil
+      end
 
-    size = headers
-    |> Enum.find(fn {k, _} -> String.downcase(k) == "content-length" end)
-    |> elem(1)
-    |> String.to_integer
+    size =
+      headers
+      |> Enum.find(fn {k, _} -> String.downcase(k) == "content-length" end)
+      |> elem(1)
+      |> String.to_integer()
 
     {file_attrs, size}
   end
@@ -76,8 +81,9 @@ defmodule ExAws.S3.Download do
   end
 
   def get_header(headers, key, default \\ nil) do
-    kv = headers
-    |> Enum.find(fn {k, _} -> String.downcase(k) == key end)
+    kv =
+      headers
+      |> Enum.find(fn {k, _} -> String.downcase(k) == key end)
 
     case kv do
       nil -> default
@@ -87,7 +93,6 @@ defmodule ExAws.S3.Download do
 end
 
 defimpl ExAws.Operation, for: ExAws.S3.Download do
-
   alias ExAws.S3.Download
 
   def perform(op, config) do
@@ -97,23 +102,26 @@ defimpl ExAws.Operation, for: ExAws.S3.Download do
   end
 
   defp download_to({:error, e}, _op, _config), do: {:error, e}
+
   defp download_to({:ok, file}, op, config) do
     try do
       {file_attrs, stream} = Download.build_chunk_stream(op, config)
-      
+
       stream
-      |> Task.async_stream(fn boundaries ->
-        chunk = Download.get_chunk(op, boundaries, config)
-        :ok = :file.pwrite(file, [chunk])
-      end,
+      |> Task.async_stream(
+        fn boundaries ->
+          chunk = Download.get_chunk(op, boundaries, config)
+          :ok = :file.pwrite(file, [chunk])
+        end,
         max_concurrency: Keyword.get(op.opts, :max_concurrency, 8),
         timeout: Keyword.get(op.opts, :timeout, 60_000)
       )
-      |> Stream.run
+      |> Stream.run()
 
       File.close(file)
+
       if file_attrs["mtime"] do
-        File.touch!(op.dest, file_attrs["mtime"] |> String.to_integer)
+        File.touch!(op.dest, file_attrs["mtime"] |> String.to_integer())
       end
 
       {:ok, :done}

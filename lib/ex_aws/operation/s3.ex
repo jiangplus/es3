@@ -30,7 +30,6 @@ defmodule ExAws.Operation.S3 do
 
       hashed_payload = ExAws.Auth.Utils.hash_sha256(body)
 
-
       headers =
         headers
         |> Map.put("x-amz-content-sha256", hashed_payload)

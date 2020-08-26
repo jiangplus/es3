@@ -26,7 +26,7 @@ defmodule Es3.MixProject do
       {:httpoison, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:hackney, "~> 1.9"},
-      {:sweet_xml, "~> 0.6"},
+      {:sweet_xml, "~> 0.6"}
     ]
   end
 end
