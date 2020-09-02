@@ -86,6 +86,18 @@ defmodule Es3.CLI do
     """)
   end
 
+  def ws_create([uri] = _args, opts) do
+    Es3.ws_create(uri, opts)
+  end
+
+  def ws_info([uri] = _args, opts) do
+    Es3.ws_info(uri, opts)
+  end
+
+  def ws_delete([uri] = _args, opts) do
+    Es3.ws_delete(uri, opts)
+  end
+
   def main(args) do
     options = [
       switches: [
@@ -115,6 +127,9 @@ defmodule Es3.CLI do
         ["ls" | args] -> ls(args, opts)
         ["rm" | args] -> rm(args, opts)
         ["sync" | args] -> sync(args, opts)
+        ["ws-create" | args] -> ws_create(args, opts)
+        ["ws-info" | args] -> ws_info(args, opts)
+        ["ws-delete" | args] -> ws_delete(args, opts)
         _ -> IO.puts(@help_string)
       end
     rescue

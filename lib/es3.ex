@@ -262,7 +262,7 @@ defmodule Es3 do
     uri = URI.parse(uri)
     bucket = uri.host
 
-    info = ExAws.S3.delete_bucket_website(bucket)
+    info = ExAws.S3.delete_bucket_website(bucket) |> ExAws.request!()
     IO.puts("ok")
   end
 
