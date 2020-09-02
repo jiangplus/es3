@@ -48,14 +48,20 @@ defmodule Es3 do
   end
 
   # s3cmd rb s3://BUCKET
-  def put(local_file_path, uri) do
+  def put(local_file_path, uri, opts \\ []) do
     uri = URI.parse(uri)
     bucket = uri.host
     path = get_path(uri.path)
 
+    upload_opts = if opts[:acl_public] do
+      [acl: :public_read]
+    else
+      []
+    end
+
     local_file_path
     |> ExAws.S3.Upload.stream_file()
-    |> ExAws.S3.upload(bucket, path)
+    |> ExAws.S3.upload(bucket, path, upload_opts)
     |> ExAws.request!()
     |> IO.inspect()
   end

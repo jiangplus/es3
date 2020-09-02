@@ -39,8 +39,8 @@ defmodule Es3.CLI do
     """)
   end
 
-  def put([source, dest] = _args, _opts) do
-    Es3.put(source, dest)
+  def put([source, dest] = _args, opts) do
+    Es3.put(source, dest, opts)
   end
 
   def put(_) do
