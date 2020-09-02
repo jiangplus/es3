@@ -53,11 +53,12 @@ defmodule Es3 do
     bucket = uri.host
     path = get_path(uri.path)
 
-    upload_opts = if opts[:acl_public] do
-      [acl: :public_read]
-    else
-      []
-    end
+    upload_opts =
+      if opts[:acl_public] do
+        [acl: :public_read]
+      else
+        []
+      end
 
     local_file_path
     |> ExAws.S3.Upload.stream_file()
@@ -140,12 +141,15 @@ defmodule Es3 do
 
   def setacl(uri, [acl_grant: grant] = opts) do
     [perm, grantee] = grant |> String.split(":")
-    perm = case perm do
-      "read" -> :grant_read
-      "read_acp" -> :grant_read_acp
-      "write_acp" -> :grant_write_acp
-      "full_control" -> :grant_full_control
-    end
+
+    perm =
+      case perm do
+        "read" -> :grant_read
+        "read_acp" -> :grant_read_acp
+        "write_acp" -> :grant_write_acp
+        "full_control" -> :grant_full_control
+      end
+
     grantee = [{:id, grantee}]
 
     uri = URI.parse(uri)
@@ -153,10 +157,13 @@ defmodule Es3 do
     path = get_path(uri.path)
 
     info = ExAws.S3.put_object_acl(bucket, path, [{perm, grantee}]) |> ExAws.request!()
+
     case info do
-      %{status_code: 200} -> 
+      %{status_code: 200} ->
         IO.puts("#{uri} grant committed")
-      _ -> IO.inspect(info)
+
+      _ ->
+        IO.inspect(info)
     end
   end
 
@@ -164,15 +171,18 @@ defmodule Es3 do
     uri = URI.parse(uri)
     bucket = uri.host
     path = get_path(uri.path)
-    
+
     info = ExAws.S3.put_object_acl(bucket, path, acl: :public_read) |> ExAws.request!()
+
     case info do
-      %{status_code: 200} -> 
+      %{status_code: 200} ->
         IO.puts("#{uri} ACL set to Public")
         IO.puts("Public URL : #{uri}")
         aws_config = ExAws.Config.new(:s3, %{})
         IO.puts("#{aws_config.scheme}#{bucket}.#{aws_config.host}/#{path}")
-      _ -> IO.inspect(info)
+
+      _ ->
+        IO.inspect(info)
     end
   end
 
@@ -180,12 +190,15 @@ defmodule Es3 do
     uri = URI.parse(uri)
     bucket = uri.host
     path = get_path(uri.path)
-    
+
     info = ExAws.S3.put_object_acl(bucket, path, acl: :private) |> ExAws.request!()
+
     case info do
-      %{status_code: 200} -> 
+      %{status_code: 200} ->
         IO.puts("#{uri} ACL set to Private")
-      _ -> IO.inspect(info)
+
+      _ ->
+        IO.inspect(info)
     end
   end
 
@@ -221,6 +234,71 @@ defmodule Es3 do
 
   def fstat(name) do
     File.stat!(name) |> IO.inspect()
+  end
+
+  def ws_create(uri, opts \\ []) do
+    uri = URI.parse(uri)
+    bucket = uri.host
+
+    config_body = """
+    <WebsiteConfiguration xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>
+        <IndexDocument>
+            <Suffix>index.html</Suffix>
+        </IndexDocument>
+        <ErrorDocument>
+            <Key>error.html</Key>
+        </ErrorDocument>
+    </WebsiteConfiguration>
+    """
+
+    info =
+      ExAws.S3.put_bucket_website(bucket, config_body)
+      |> ExAws.request!()
+
+    IO.puts("ok")
+  end
+
+  def ws_delete(uri, opts \\ []) do
+    uri = URI.parse(uri)
+    bucket = uri.host
+
+    info = ExAws.S3.delete_bucket_website(bucket)
+    IO.puts("ok")
+  end
+
+  def ws_info(uri, opts \\ []) do
+    uri = URI.parse(uri)
+    bucket = uri.host
+
+    import SweetXml
+
+    info =
+      ExAws.S3.get_bucket_website(bucket)
+      |> ExAws.request()
+
+    case info do
+      {:ok, info} ->
+        result =
+          info.body
+          |> xpath(
+            ~x"//WebsiteConfiguration"l,
+            index_doc: ~x"./IndexDocument/Suffix/text()",
+            error_doc: ~x"./ErrorDocument/Key/text()"
+          )
+
+        Enum.map(result, fn x ->
+          IO.puts("index document: #{x.index_doc}")
+          IO.puts("error document: #{x.error_doc}")
+        end)
+
+        result
+
+      {:error, {:http_error, 404, _resp}} ->
+        IO.puts("The specified bucket does not have a website configuration")
+
+      {:error, resp} ->
+        IO.puts(resp)
+    end
   end
 
   def sync(source, dest, opts \\ []) do

@@ -27,6 +27,8 @@ defmodule ExAws.Operation.S3 do
         |> add_bucket_to_path
         |> add_resource_to_params
         |> ExAws.Request.Url.build(config)
+        # hack : prevent adding value to resource
+        |> String.replace("?website=1", "?website")
 
       hashed_payload = ExAws.Auth.Utils.hash_sha256(body)
 

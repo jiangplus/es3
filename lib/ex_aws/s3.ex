@@ -375,9 +375,8 @@ defmodule ExAws.S3 do
 
   @doc "Update or create a bucket website configuration"
   @spec put_bucket_website(bucket :: binary, website_config :: binary) :: no_return
-  def put_bucket_website(bucket, _website_config) do
-    raise "not yet implemented"
-    request(:put, bucket, "/")
+  def put_bucket_website(bucket, config_body) do
+    request(:put, bucket, "/", resource: "website", body: config_body)
   end
 
   ## Objects
