@@ -132,6 +132,28 @@ defmodule Es3 do
     )
   end
 
+  def setacl(uri, [acl_grant: grant] = opts) do
+    [perm, grantee] = grant |> String.split(":")
+    perm = case perm do
+      "read" -> :grant_read
+      "read_acp" -> :grant_read_acp
+      "write_acp" -> :grant_write_acp
+      "full_control" -> :grant_full_control
+    end
+    grantee = [{:id, grantee}]
+
+    uri = URI.parse(uri)
+    bucket = uri.host
+    path = get_path(uri.path)
+
+    info = ExAws.S3.put_object_acl(bucket, path, [{perm, grantee}]) |> ExAws.request!()
+    case info do
+      %{status_code: 200} -> 
+        IO.puts("#{uri} grant committed")
+      _ -> IO.inspect(info)
+    end
+  end
+
   def setacl(uri, [acl_public: true] = opts) do
     uri = URI.parse(uri)
     bucket = uri.host
