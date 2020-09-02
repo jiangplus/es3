@@ -40,6 +40,23 @@ defmodule ExAws.Config do
   end
 
   def build_base(service, overrides \\ %{}) do
+    json_config_path = "~/.es3config"
+    json_config_file = Path.expand(json_config_path)
+
+    json_config =
+      try do
+        File.read!(json_config_file) |> Jason.decode!(keys: :atoms)
+      rescue
+        # e in File.Error ->
+        #   IO.inspect(e)
+        #   %{}
+        # e in Jason.DecodeError ->
+        #   IO.inspect(e)
+        #   %{}
+        e ->
+          %{}
+      end
+
     common_config = Application.get_all_env(:es3) |> Map.new() |> Map.take(@common_config)
     service_config = Application.get_env(:es3, service, []) |> Map.new()
 
@@ -47,13 +64,15 @@ defmodule ExAws.Config do
       (Map.get(overrides, :region) ||
          Map.get(service_config, :region) ||
          Map.get(common_config, :region) ||
+         Map.get(json_config, :region) ||
          "us-east-1")
       |> retrieve_runtime_value(%{})
 
     defaults = ExAws.Config.Defaults.get(service, region)
 
     defaults
-    |> Map.merge(common_config)
+    |> Map.merge(json_config, fn _k, v1, v2 -> v2 || v1 end)
+    |> Map.merge(common_config, fn _k, v1, v2 -> v2 || v1 end)
     |> Map.merge(service_config)
     |> Map.merge(overrides)
   end

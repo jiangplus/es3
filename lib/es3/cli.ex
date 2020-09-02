@@ -11,11 +11,16 @@ defmodule Es3.CLI do
     Es3.ls(uri)
   end
 
-  def ls(_) do
+  def ls([] = _args, _opts) do
     Es3.ls()
   end
 
   def get([source, dest] = _args, _opts) do
+    Es3.get(source, dest)
+  end
+
+  def get([source, dest] = _args, _opts) do
+    dest = Path.basename(source)
     Es3.get(source, dest)
   end
 
