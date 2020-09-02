@@ -15,6 +15,14 @@ defmodule Es3.CLI do
     Es3.ls()
   end
 
+  def stat([uri] = _args, _opts) do
+    Es3.stat(uri)
+  end
+
+  def setacl([uri] = _args, opts) do
+    Es3.setacl(uri, opts)
+  end
+
   def get([source, dest] = _args, _opts) do
     Es3.get(source, dest)
   end
@@ -85,8 +93,10 @@ defmodule Es3.CLI do
         secret_key: :string,
         ssl: :string,
         no_ssl: :string,
-        acl_public: :string,
-        acl_private: :string,
+        acl_public: :boolean,
+        acl_private: :boolean,
+        acl_grant: :string,
+        acl_revoke: :string,
         host: :string,
         host_bucket: :string,
         region: :string
@@ -98,6 +108,8 @@ defmodule Es3.CLI do
 
     try do
       case arglist do
+        ["info" | args] -> stat(args, opts)
+        ["setacl" | args] -> setacl(args, opts)
         ["get" | args] -> get(args, opts)
         ["put" | args] -> put(args, opts)
         ["ls" | args] -> ls(args, opts)

@@ -132,6 +132,35 @@ defmodule Es3 do
     )
   end
 
+  def setacl(uri, [acl_public: true] = opts) do
+    uri = URI.parse(uri)
+    bucket = uri.host
+    path = get_path(uri.path)
+    
+    info = ExAws.S3.put_object_acl(bucket, path, acl: :public_read) |> ExAws.request!()
+    case info do
+      %{status_code: 200} -> 
+        IO.puts("#{uri} ACL set to Public")
+        IO.puts("Public URL : #{uri}")
+        aws_config = ExAws.Config.new(:s3, %{})
+        IO.puts("#{aws_config.scheme}#{bucket}.#{aws_config.host}/#{path}")
+      _ -> IO.inspect(info)
+    end
+  end
+
+  def setacl(uri, [acl_private: true] = opts) do
+    uri = URI.parse(uri)
+    bucket = uri.host
+    path = get_path(uri.path)
+    
+    info = ExAws.S3.put_object_acl(bucket, path, acl: :private) |> ExAws.request!()
+    case info do
+      %{status_code: 200} -> 
+        IO.puts("#{uri} ACL set to Private")
+      _ -> IO.inspect(info)
+    end
+  end
+
   def stat(uri) do
     uri = URI.parse(uri)
     bucket = uri.host
